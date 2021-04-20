@@ -128,6 +128,9 @@ def plot_toy_regions(X,
     else:
         ax.set_xlabel('x1')
         ax.set_ylabel('x2')
+
+    ax.set_ylim(y_min, y_max)
+    ax.set_xlim(x_min, x_max)
     
 
     return ax
