@@ -6,6 +6,39 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
+def log_Z_gauss(mu, var):
+    return 0.5*torch.sum(torch.log(var) + mu**2 / var)
+
+
+def factorized_gauss_KLD(qmu, qlog_var, pmu, plog_var):
+    return 0.5 * torch.sum(torch.exp(qlog_var - plog_var)
+                           + (qmu - pmu)**2/torch.exp(plog_var) - 1
+                           + (plog_var - qlog_var))
+
+
+def factorized_gauss_ar(alpha, qmu, qlog_var, pmu, plog_var):
+    if alpha == 0:
+        # KLD(pi|q)
+        return factorized_gauss_KLD(pmu, plog_var, qmu, qlog_var)
+    elif alpha == 1:
+        # KLD(q|pi)
+        return factorized_gauss_KLD(qmu, qlog_var, pmu, plog_var)
+
+    qvar, pvar = torch.exp(qlog_var), torch.exp(plog_var)
+
+    log_Z_prior = log_Z_gauss(pmu, pvar)
+    log_Z_q = log_Z_gauss(qmu, qvar)
+
+    new_var = 1/(alpha/qvar + (1 - alpha)/pvar)
+    new_mu = new_var*(alpha*qmu/qvar + (1-alpha)*pmu/pvar)
+
+    log_Z_new = log_Z_gauss(new_mu, new_var)
+
+    Dar = (log_Z_new - alpha*log_Z_q - (1-alpha)*log_Z_prior)
+
+    return 1/(alpha*(alpha-1)) * Dar
+
+
 def plot_toy_regions(X,
                      T,
                      predict,
